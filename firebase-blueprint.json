@@ -1,0 +1,110 @@
+{
+  "entities": {
+    "User": {
+      "title": "User Profile",
+      "description": "Public and private citizen profiles with gamification details.",
+      "type": "object",
+      "properties": {
+        "displayName": { "type": "string", "description": "The user's display name" },
+        "email": { "type": "string", "description": "The user's email address" },
+        "photoURL": { "type": "string", "description": "The user's profile photo URL" },
+        "points": { "type": "integer", "description": "Gamified reputation points" },
+        "badges": { "type": "array", "description": "List of unlocked badges" },
+        "totalReports": { "type": "integer", "description": "Number of civic issues reported" },
+        "resolvedIssues": { "type": "integer", "description": "Number of issues reported by this user that are resolved" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Account registration timestamp" },
+        "role": { "type": "string", "enum": ["citizen", "admin"], "description": "System role" }
+      },
+      "required": ["displayName", "email", "points", "badges", "totalReports", "resolvedIssues", "role"]
+    },
+    "Issue": {
+      "title": "Civic Issue Report",
+      "description": "Hyperlocal community issue submitted by a citizen, analyzed by Gemini AI.",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string", "description": "Brief description of the problem" },
+        "description": { "type": "string", "description": "Detailed description of the issue" },
+        "category": { "type": "string", "description": "Issue classification (e.g. Pothole, Broken Streetlight, Waste/Garbage)" },
+        "severity": { "type": "string", "enum": ["Low", "Medium", "High", "Critical"], "description": "Calculated or manual severity level" },
+        "status": { "type": "string", "enum": ["Reported", "Verified", "Assigned", "In Progress", "Resolved"], "description": "Current status in lifecycle" },
+        "location": {
+          "type": "object",
+          "properties": {
+            "lat": { "type": "number" },
+            "lng": { "type": "number" }
+          },
+          "required": ["lat", "lng"]
+        },
+        "imageBase64": { "type": "string", "description": "Compressed base64 string of the image" },
+        "imagesBase64": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Array of compressed base64 strings of the uploaded images"
+        },
+        "videoBase64": { "type": "string", "description": "Compressed base64 string of the uploaded/recorded video" },
+        "videoName": { "type": "string", "description": "Name of the video file" },
+        "reportedBy": { "type": "string", "description": "User ID of the reporter" },
+        "reportedByName": { "type": "string", "description": "Display name of the reporter" },
+        "reportedByPhoto": { "type": "string", "description": "Profile picture of the reporter" },
+        "reportedAt": { "type": "string", "format": "date-time", "description": "Creation timestamp" },
+        "incidentDate": { "type": "string", "format": "date", "description": "Date when the civic issue happened or was observed" },
+        "upvotes": { "type": "integer", "description": "Number of upvotes from community members" },
+        "upvotedBy": { "type": "array", "description": "User IDs of members who upvoted" },
+        "verifications": { "type": "integer", "description": "Number of verification confirmations" },
+        "verifiedBy": { "type": "array", "description": "User IDs of members who verified" },
+        "suggestedDepartment": { "type": "string", "description": "Assigned department for resolution" },
+        "aiConfidence": { "type": "number", "description": "Gemini classification confidence score" },
+        "resolvedAt": { "type": "string", "format": "date-time", "description": "Resolution timestamp, if any" }
+      },
+      "required": ["title", "description", "category", "severity", "status", "location", "reportedBy", "reportedAt", "upvotes", "verifications"]
+    },
+    "Comment": {
+      "title": "Issue Comment",
+      "description": "User comment or discussion on a reported civic issue.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "userDisplayName": { "type": "string" },
+        "userPhotoURL": { "type": "string" },
+        "text": { "type": "string" },
+        "timestamp": { "type": "string", "format": "date-time" },
+        "likes": { "type": "integer", "description": "Number of solidarity reactions/likes from the community" },
+        "likedBy": { "type": "array", "description": "User IDs of members who liked/supported this comment" }
+      },
+      "required": ["userId", "userDisplayName", "text", "timestamp"]
+    },
+    "Notification": {
+      "title": "Alert / Notification",
+      "description": "Alerts triggered when issues are updated, verified, or commented on.",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string", "description": "Alert title" },
+        "message": { "type": "string", "description": "Alert body/message" },
+        "issueId": { "type": "string", "description": "ID of the associated issue" },
+        "issueTitle": { "type": "string", "description": "Title of the associated issue" },
+        "type": { "type": "string", "enum": ["status_update", "comment", "verification"], "description": "Type of event" },
+        "read": { "type": "boolean", "description": "Whether the notification has been read" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Alert creation timestamp" }
+      },
+      "required": ["title", "message", "issueId", "issueTitle", "type", "read", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/User" },
+      "description": "User profiles database"
+    },
+    "/users/{userId}/notifications/{notificationId}": {
+      "schema": { "$ref": "#/entities/Notification" },
+      "description": "Real-time user specific notifications"
+    },
+    "/issues/{issueId}": {
+      "schema": { "$ref": "#/entities/Issue" },
+      "description": "Main civic issue reports collection"
+    },
+    "/issues/{issueId}/comments/{commentId}": {
+      "schema": { "$ref": "#/entities/Comment" },
+      "description": "Comments and discussion subcollection per issue"
+    }
+  }
+}

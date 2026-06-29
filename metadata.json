@@ -1,0 +1,10 @@
+{
+  "name": "JanSeva",
+  "description": "Apki awaaz, Apka samadhan - An AI-powered civic reporting and gamified community resolution platform.",
+  "requestFramePermissions": [
+    "geolocation"
+  ],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

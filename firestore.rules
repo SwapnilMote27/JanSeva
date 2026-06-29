@@ -1,0 +1,64 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Default deny catch-all
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && 
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "admin";
+    }
+
+    // User collection rules
+    match /users/{userId} {
+      allow read: if true;
+      allow create: if isOwner(userId) && request.resource.data.role == "citizen";
+      allow update: if isOwner(userId) && request.resource.data.role == resource.data.role;
+
+      match /notifications/{notificationId} {
+        allow read, update, delete: if isSignedIn() && request.auth.uid == userId;
+        allow create: if isSignedIn();
+      }
+    }
+
+    // Issues collection rules
+    match /issues/{issueId} {
+      allow read: if true;
+      allow create: if isSignedIn() && 
+                    request.resource.data.reportedBy == request.auth.uid &&
+                    request.resource.data.status == "Reported";
+      
+      allow update: if isSignedIn() && (
+        isAdmin() ||
+        // User can upvote
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['upvotes', 'upvotedBy']) ||
+        // User can verify (which might transition status to "Verified")
+        request.resource.data.diff(resource.data).affectedKeys().hasAny(['verifications', 'verifiedBy', 'status', 'resolvedVerifications', 'resolvedVerifiedBy'])
+      );
+
+      allow delete: if isSignedIn();
+    }
+
+    // Comments subcollection rules
+    match /issues/{issueId}/comments/{commentId} {
+      allow read: if true;
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+      allow update: if isSignedIn() && (
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likes', 'likedBy'])
+      );
+    }
+  }
+}
